@@ -1,1 +1,13 @@
-bcrypt.gensalt(rounds=12)
+import bcrypt
+
+# Step 1: Get the password input (you can replace this with hardcoded string for testing)
+password = input("Enter your password: ")
+
+# Step 2: Convert the password to bytes
+password_bytes = password.encode('utf-8')
+
+# Step 3: Generate salt and hash the password
+hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt(rounds=12))
+
+# Step 4: Show the hashed password
+print("Hashed password:", hashed.decode())
