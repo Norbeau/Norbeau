@@ -69,10 +69,12 @@
       })
       .then(res => res.json())
       .then(data => {
-        if (data.status === "success") {
-          window.location.href = `user_page.html?username=${encodeURIComponent(username)}&word_count=${encodeURIComponent(data.word_count)}`;
+        if (data.status === "success" && data.word_count !== undefined) {
+          // ✅ redirect includes word_count
+          const wordCount = data.word_count;
+          window.location.href = `user_page.html?username=${encodeURIComponent(username)}&word_count=${encodeURIComponent(wordCount)}`;
         } else {
-          alert(data.message);
+          alert(data.message || "Login failed.");
         }
       })
       .catch(error => {
