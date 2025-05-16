@@ -4,40 +4,90 @@ import openai
 import os
 
 app = Flask(__name__)
-CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"])
+CORS(app)
 
-# ✅ API Key — for local testing only
-openai.api_key = "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"
+openai.api_key = "sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Replace with your key
 
-# ✅ Relative path for GitHub/Codespace
-VOCAB_INDEX_FILE = "../database/vocabulary/index.txt"
+# ====== Paths ======
+MEMBER_LIST = "../database/member_list.txt"
+VOCAB_DIR = "../database/vocabulary/"
 
-# ====== Helper Functions ======
+# ====== Login Route ======
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
 
-def load_index():
-    if not os.path.exists(VOCAB_INDEX_FILE):
-        with open(VOCAB_INDEX_FILE, "w") as f:
-            f.write("File name: index.txt\n")
+    user_index = None
+    with open(MEMBER_LIST, "r") as f:
+        for line in f:
+            parts = line.strip().strip("{}").split(",")
+            if len(parts) >= 3 and parts[1].strip() == username:
+                if parts[2].strip() != password:
+                    return jsonify({"status": "error", "message": "The password is wrong."})
+                user_index = parts[0].strip()
+                break
+
+    if user_index is None:
+        return jsonify({"status": "error", "message": "The username does not exist."})
+
+    vocab_file = os.path.join(VOCAB_DIR, f"{user_index}.txt")
+    if not os.path.exists(vocab_file):
+        with open(vocab_file, "w") as f:
+            f.write(f"File name: {user_index}.txt\n")
             f.write("Word count: 0\n")
             f.write("----------\n")
-        return 0, []
 
-    with open(VOCAB_INDEX_FILE, "r") as f:
+    with open(vocab_file, "r") as f:
         lines = f.readlines()
         word_count = int(lines[1].split(":")[1].strip())
-        words = [line.strip().split(",")[1].strip() for line in lines[3:]]
-        return word_count, words
 
-def add_word_to_index(word, new_index):
-    with open(VOCAB_INDEX_FILE, "a") as f:
-        f.write(f"{{{new_index}, {word}, difficulty: 100%}}\n")
+    return jsonify({"status": "success", "message": f"Welcome to Norbeau, {username}", "word_count": word_count})
 
-    with open(VOCAB_INDEX_FILE, "r") as f:
+# ====== Add Word Route ======
+@app.route("/add_word", methods=["POST"])
+def add_word():
+    data = request.json
+    word = data.get("word", "").strip().lower()
+    user_index = data.get("user_index")
+
+    if not word or not user_index:
+        return jsonify({"message": "Invalid input."}), 400
+
+    vocab_file = os.path.join(VOCAB_DIR, f"{user_index}.txt")
+    if not os.path.exists(vocab_file):
+        return jsonify({"message": "Vocabulary file not found."}), 404
+
+    with open(vocab_file, "r") as f:
         lines = f.readlines()
-    lines[1] = f"Word count: {new_index}\n"
-    with open(VOCAB_INDEX_FILE, "w") as f:
-        f.writelines(lines)
+        word_count = int(lines[1].split(":")[1].strip())
+        existing_words = [line.strip().split(",")[1].strip() for line in lines[3:]]
 
+    if word in existing_words:
+        return jsonify({"message": "The word already exists in your vocabulary."})
+
+    # Step 1: Is it a French word?
+    prompt1 = f'Is "{word}" a French word, only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase'
+    answer1 = ask_chatgpt(prompt1)
+    if answer1 != "yes":
+        return jsonify({"message": "It is not a French word."})
+
+    # Step 2: Is it below CLB 7?
+    prompt2 = f'Is "{word}" a regular French word below CLB level 7? only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase'
+    answer2 = ask_chatgpt(prompt2)
+    if answer2 == "yes":
+        new_index = word_count + 1
+        with open(vocab_file, "a") as f:
+            f.write(f"{{{new_index}, {word}, difficulty: 100%}}\n")
+        lines[1] = f"Word count: {new_index}\n"
+        with open(vocab_file, "w") as f:
+            f.writelines(lines)
+        return jsonify({"message": f"The word '{word}' has been added to your vocabulary!"})
+    else:
+        return jsonify({"message": "The word is beyond CLB level 7, not recommended to learn."})
+
+# ====== Helper ======
 def ask_chatgpt(prompt):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -45,35 +95,7 @@ def ask_chatgpt(prompt):
     )
     return response["choices"][0]["message"]["content"].strip().lower()
 
-# ====== Routes ======
-
-@app.route("/add_word", methods=["POST"])
-def add_word():
-    data = request.json
-    word = data.get("word", "").strip().lower()
-
-    if not word:
-        return jsonify({"message": "No word provided."}), 400
-
-    word_count, words = load_index()
-
-    if word in words:
-        return jsonify({"message": "The word already exists in your vocabulary."})
-
-    # Step 1: Is it a French word?
-    is_french = ask_chatgpt(f'Is "{word}" a French word, only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase')
-    if is_french != "yes":
-        return jsonify({"message": "It is not a French word."})
-
-    # Step 2: Is it below CLB level 7?
-    is_clb = ask_chatgpt(f'Is "{word}" a regular French word below CLB level 7? only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase')
-    if is_clb == "yes":
-        new_index = word_count + 1
-        add_word_to_index(word, new_index)
-        return jsonify({"message": f"The word '{word}' has been added to your vocabulary!"})
-    else:
-        return jsonify({"message": "The word is beyond CLB level 7, not recommended to learn."})
-
+# ====== Ping ======
 @app.route("/ping", methods=["GET"])
 def ping():
     return jsonify({"status": "ok"})
