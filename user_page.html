@@ -3,18 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <title>User Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <h1 id="welcome-message"></h1>
+  <h3>Your vocabulary is</h3>
+  <p id="word-count">Loading...</p>
+
+  <div>
+    <button onclick="alert('Add a new word feature coming soon!')">Add a new word</button>
+    <button onclick="alert('Search feature coming soon!')">Search a word</button>
+    <button onclick="alert('Brainstorming coming soon!')">Brain storming</button>
+  </div>
 
   <script>
-    // Grab the username from the query string
     const params = new URLSearchParams(window.location.search);
     const username = params.get("username");
+    const wordCount = params.get("word_count");
 
-    // Set welcome message
-    document.getElementById("welcome-message").innerText = 
-        username ? `Welcome to Norbeau, ${username}` : "Welcome to Norbeau";
+    document.getElementById("welcome-message").innerText =
+      username ? `Welcome to Norbeau, ${username}` : "Welcome to Norbeau";
+    document.getElementById("word-count").innerText =
+      wordCount !== null ? wordCount : "Unavailable";
   </script>
 </body>
 </html>
