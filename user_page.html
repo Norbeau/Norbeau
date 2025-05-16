@@ -15,6 +15,10 @@
       font-size: 16px;
       cursor: pointer;
     }
+    #word-count {
+      font-size: 18px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -35,6 +39,7 @@
 
     document.getElementById("welcome-message").innerText =
       username ? `Welcome to Norbeau, ${username}` : "Welcome to Norbeau";
+
     document.getElementById("word-count").innerText =
       wordCount !== null ? wordCount : "Unavailable";
   </script>
