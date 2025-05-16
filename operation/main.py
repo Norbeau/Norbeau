@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # ✅ Enables cross-origin requests
 
 app = Flask(__name__)
+CORS(app)  # ✅ Allows frontend from GitHub Pages to call this backend
 
-# Correct absolute path for PythonAnywhere
+# Absolute path for PythonAnywhere
 MEMBER_FILE = "/home/Norbeau/database/member_list.txt"
 
 def read_members():
