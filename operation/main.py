@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Enables cross-origin requests
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # ✅ Allows frontend from GitHub Pages to call this backend
+CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"])
 
-# Absolute path for PythonAnywhere
-MEMBER_FILE = "/home/Norbeau/database/member_list.txt"
+# ✅ Relative path for local GitHub testing
+MEMBER_FILE = "../database/member_list.txt"
 
 def read_members():
     members = {}
@@ -30,7 +30,6 @@ def login():
 
     if username not in members:
         return jsonify({"status": "error", "message": "The username does not exist."})
-
     if members[username] != password:
         return jsonify({"status": "error", "message": "The password is wrong."})
 
