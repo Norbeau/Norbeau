@@ -5,9 +5,10 @@ import os
 app = Flask(__name__)
 CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"])
 
-# Relative paths for local or GitHub-based use
+# Relative paths for GitHub/local use
 MEMBER_FILE = "../database/member_list.txt"
 VOCAB_DIR = "../database/vocabulary"
+INDEX_FILE = os.path.join(VOCAB_DIR, "index.txt")
 
 def read_members():
     members = {}
@@ -22,20 +23,30 @@ def read_members():
                 members[username] = {"id": index, "password": password}
     return members
 
-def ensure_vocab_file(user_id):
-    file_path = os.path.join(VOCAB_DIR, f"{user_id}.txt")
-    if not os.path.exists(file_path):
-        with open(file_path, "w") as f:
-            f.write("Word count: 0\n")
-            f.write("-------------------\n")
-    return file_path
+def create_blank_file(file_path, filename_label):
+    with open(file_path, "w") as f:
+        f.write(f"File name: {filename_label}\n")
+        f.write("Word Count: 0\n")
+        f.write("----------\n")
+
+def ensure_index_file():
+    if not os.path.exists(INDEX_FILE):
+        create_blank_file(INDEX_FILE, "index.txt")
+
+def ensure_user_file(user_id):
+    filename = f"{user_id}.txt"
+    path = os.path.join(VOCAB_DIR, filename)
+    if not os.path.exists(path):
+        create_blank_file(path, filename)
+    return path
 
 def read_word_count(file_path):
     try:
         with open(file_path, "r") as f:
+            f.readline()  # skip File name
             line = f.readline().strip()
-            if line.startswith("Word count:"):
-                return int(line.replace("Word count:", "").strip())
+            if line.startswith("Word Count:"):
+                return int(line.replace("Word Count:", "").strip())
     except:
         pass
     return 0
@@ -53,8 +64,9 @@ def login():
         return jsonify({"status": "error", "message": "The password is wrong."})
 
     user_id = members[username]["id"]
-    vocab_file = ensure_vocab_file(user_id)
-    word_count = read_word_count(vocab_file)
+    ensure_index_file()
+    user_file = ensure_user_file(user_id)
+    word_count = read_word_count(user_file)
 
     return jsonify({
         "status": "success",
