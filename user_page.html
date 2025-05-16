@@ -19,6 +19,10 @@
       font-size: 18px;
       font-weight: bold;
     }
+    #form-section, #message-section {
+      display: none;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -26,10 +30,23 @@
   <h3>Your vocabulary is</h3>
   <p id="word-count">Loading...</p>
 
-  <div>
-    <button onclick="alert('Add a new word feature coming soon!')">Add a new word</button>
+  <div id="main-buttons">
+    <button onclick="showAddWordForm()">Add a new word</button>
     <button onclick="alert('Search feature coming soon!')">Search a word</button>
     <button onclick="alert('Brainstorming coming soon!')">Brain storming</button>
+  </div>
+
+  <div id="form-section">
+    <h3>Enter a French word:</h3>
+    <input type="text" id="new-word" placeholder="e.g. bonjour" />
+    <br>
+    <button onclick="submitWord()">Submit</button>
+    <button onclick="returnToMain()">Cancel</button>
+  </div>
+
+  <div id="message-section">
+    <p id="feedback-message"></p>
+    <button onclick="returnToMain()">Return to User Page</button>
   </div>
 
   <script>
@@ -39,9 +56,46 @@
 
     document.getElementById("welcome-message").innerText =
       username ? `Welcome to Norbeau, ${username}` : "Welcome to Norbeau";
-
     document.getElementById("word-count").innerText =
       wordCount !== null ? wordCount : "Unavailable";
+
+    function showAddWordForm() {
+      document.getElementById("main-buttons").style.display = "none";
+      document.getElementById("form-section").style.display = "block";
+    }
+
+    function returnToMain() {
+      // Reload the page with the same URL
+      window.location.reload();
+    }
+
+    function submitWord() {
+      const word = document.getElementById("new-word").value.trim();
+      if (!word) {
+        alert("Please enter a word.");
+        return;
+      }
+
+      fetch("https://norbeau.pythonanywhere.com/add_word", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ word: word })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("form-section").style.display = "none";
+        document.getElementById("message-section").style.display = "block";
+        document.getElementById("feedback-message").innerText = data.message || "Unexpected response.";
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        document.getElementById("form-section").style.display = "none";
+        document.getElementById("message-section").style.display = "block";
+        document.getElementById("feedback-message").innerText = "Server error. Please try again later.";
+      });
+    }
   </script>
 </body>
 </html>
