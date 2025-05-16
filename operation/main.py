@@ -1,80 +1,79 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import openai
 import os
 
 app = Flask(__name__)
 CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"])
 
-# Relative paths for GitHub/local use
-MEMBER_FILE = "../database/member_list.txt"
-VOCAB_DIR = "../database/vocabulary"
-INDEX_FILE = os.path.join(VOCAB_DIR, "index.txt")
+# ✅ API Key — for local testing only
+openai.api_key = "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"
 
-def read_members():
-    members = {}
-    with open(MEMBER_FILE, "r") as file:
-        for line in file:
-            line = line.strip().strip("{}")
-            if not line:
-                continue
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) >= 3:
-                index, username, password, *rest = parts
-                members[username] = {"id": index, "password": password}
-    return members
+# ✅ Relative path for GitHub/Codespace
+VOCAB_INDEX_FILE = "../database/vocabulary/index.txt"
 
-def create_blank_file(file_path, filename_label):
-    with open(file_path, "w") as f:
-        f.write(f"File name: {filename_label}\n")
-        f.write("Word Count: 0\n")
-        f.write("----------\n")
+# ====== Helper Functions ======
 
-def ensure_index_file():
-    if not os.path.exists(INDEX_FILE):
-        create_blank_file(INDEX_FILE, "index.txt")
+def load_index():
+    if not os.path.exists(VOCAB_INDEX_FILE):
+        with open(VOCAB_INDEX_FILE, "w") as f:
+            f.write("File name: index.txt\n")
+            f.write("Word count: 0\n")
+            f.write("----------\n")
+        return 0, []
 
-def ensure_user_file(user_id):
-    filename = f"{user_id}.txt"
-    path = os.path.join(VOCAB_DIR, filename)
-    if not os.path.exists(path):
-        create_blank_file(path, filename)
-    return path
+    with open(VOCAB_INDEX_FILE, "r") as f:
+        lines = f.readlines()
+        word_count = int(lines[1].split(":")[1].strip())
+        words = [line.strip().split(",")[1].strip() for line in lines[3:]]
+        return word_count, words
 
-def read_word_count(file_path):
-    try:
-        with open(file_path, "r") as f:
-            f.readline()  # skip File name
-            line = f.readline().strip()
-            if line.startswith("Word Count:"):
-                return int(line.replace("Word Count:", "").strip())
-    except:
-        pass
-    return 0
+def add_word_to_index(word, new_index):
+    with open(VOCAB_INDEX_FILE, "a") as f:
+        f.write(f"{{{new_index}, {word}, difficulty: 100%}}\n")
 
-@app.route('/login', methods=['POST'])
-def login():
+    with open(VOCAB_INDEX_FILE, "r") as f:
+        lines = f.readlines()
+    lines[1] = f"Word count: {new_index}\n"
+    with open(VOCAB_INDEX_FILE, "w") as f:
+        f.writelines(lines)
+
+def ask_chatgpt(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response["choices"][0]["message"]["content"].strip().lower()
+
+# ====== Routes ======
+
+@app.route("/add_word", methods=["POST"])
+def add_word():
     data = request.json
-    username = data.get("username")
-    password = data.get("password")
+    word = data.get("word", "").strip().lower()
 
-    members = read_members()
-    if username not in members:
-        return jsonify({"status": "error", "message": "The username does not exist."})
-    if members[username]["password"] != password:
-        return jsonify({"status": "error", "message": "The password is wrong."})
+    if not word:
+        return jsonify({"message": "No word provided."}), 400
 
-    user_id = members[username]["id"]
-    ensure_index_file()
-    user_file = ensure_user_file(user_id)
-    word_count = read_word_count(user_file)
+    word_count, words = load_index()
 
-    return jsonify({
-        "status": "success",
-        "message": f"Welcome to Norbeau, {username}!",
-        "word_count": word_count,
-        "user_id": user_id
-    })
+    if word in words:
+        return jsonify({"message": "The word already exists in your vocabulary."})
 
-@app.route("/ping", methods=["GET", "OPTIONS"])
+    # Step 1: Is it a French word?
+    is_french = ask_chatgpt(f'Is "{word}" a French word, only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase')
+    if is_french != "yes":
+        return jsonify({"message": "It is not a French word."})
+
+    # Step 2: Is it below CLB level 7?
+    is_clb = ask_chatgpt(f'Is "{word}" a regular French word below CLB level 7? only answer "yes" or "no", do not answer any other things like emojis or punctuations, your answer has to be all lowercase')
+    if is_clb == "yes":
+        new_index = word_count + 1
+        add_word_to_index(word, new_index)
+        return jsonify({"message": f"The word '{word}' has been added to your vocabulary!"})
+    else:
+        return jsonify({"message": "The word is beyond CLB level 7, not recommended to learn."})
+
+@app.route("/ping", methods=["GET"])
 def ping():
-    return jsonify({"status": "ok", "message": "CORS is working"})
+    return jsonify({"status": "ok"})
