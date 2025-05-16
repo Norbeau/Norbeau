@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# File path to the member list
-MEMBER_FILE = "../database/member_list.txt"
+# Correct absolute path for PythonAnywhere
+MEMBER_FILE = "/home/Norbeau/database/member_list.txt"
 
 def read_members():
     members = {}
@@ -32,8 +32,4 @@ def login():
     if members[username] != password:
         return jsonify({"status": "error", "message": "The password is wrong."})
 
-    # Login successful
     return jsonify({"status": "success", "message": f"Welcome to Norbeau, {username}!"})
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5000)
