@@ -2,9 +2,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
+
+# Enable CORS for all origins and methods (for local/frontend testing)
 CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"])
 
-# ✅ Relative path for local GitHub testing
+# Relative path for local environment
 MEMBER_FILE = "../database/member_list.txt"
 
 def read_members():
@@ -34,3 +36,8 @@ def login():
         return jsonify({"status": "error", "message": "The password is wrong."})
 
     return jsonify({"status": "success", "message": f"Welcome to Norbeau, {username}!"})
+
+# ✅ Local test route
+@app.route("/ping", methods=["GET", "OPTIONS"])
+def ping():
+    return jsonify({"status": "ok", "message": "CORS is working"})
