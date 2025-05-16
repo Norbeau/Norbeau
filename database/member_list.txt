@@ -1,1 +1,2 @@
 {1, admin, pass, norbeaufinch@gmail.com, Administrator}
+{2, norbeau, pass, norbeaufinch@gmail.com, manager}
