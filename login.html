@@ -40,7 +40,8 @@
 <body>
   <h1>Login Page</h1>
 
-  <form method="post" onsubmit="handleLogin(event)">
+  <!-- ✅ Updated form ID for script.js -->
+  <form id="login-form" method="post">
     <input type="text" name="username" id="username" placeholder="Username" required>
     <input type="password" name="password" id="password" placeholder="Password" required>
 
@@ -54,34 +55,7 @@
 
   <a href="index.html">← Back to home</a>
 
-  <script>
-    function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-
-      fetch("https://norbeau.pythonanywhere.com/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, password })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "success" && data.word_count !== undefined) {
-          // ✅ redirect includes word_count
-          const wordCount = data.word_count;
-          window.location.href = `user_page.html?username=${encodeURIComponent(username)}&word_count=${encodeURIComponent(wordCount)}`;
-        } else {
-          alert(data.message || "Login failed.");
-        }
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        alert("Server error. Please try again later.");
-      });
-    }
-  </script>
+  <!-- ✅ Connect external JS -->
+  <script src="script.js"></script>
 </body>
 </html>
