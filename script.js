@@ -35,11 +35,16 @@ document.addEventListener("DOMContentLoaded", function () {
   const addWordButton = document.getElementById("add-word-btn");
   if (addWordButton) {
     addWordButton.addEventListener("click", function () {
-      const word = document.getElementById("word").value;
+      const word = document.getElementById("word").value.trim();
       const user_index = localStorage.getItem("user_index");
 
-      if (!word || !user_index) {
-        alert("Missing input or user session.");
+      if (!word) {
+        alert("Please enter a word.");
+        return;
+      }
+
+      if (!user_index) {
+        alert("User session missing. Please log in again.");
         return;
       }
 
