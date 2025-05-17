@@ -65,14 +65,20 @@
     }
 
     function returnToMain() {
-      // Reload the page with the same URL
       window.location.reload();
     }
 
     function submitWord() {
       const word = document.getElementById("new-word").value.trim();
+      const user_index = localStorage.getItem("user_index");
+
       if (!word) {
         alert("Please enter a word.");
+        return;
+      }
+
+      if (!user_index) {
+        alert("User session missing. Please log in again.");
         return;
       }
 
@@ -81,20 +87,20 @@
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ word: word })
+        body: JSON.stringify({ word, user_index })
       })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("form-section").style.display = "none";
-        document.getElementById("message-section").style.display = "block";
-        document.getElementById("feedback-message").innerText = data.message || "Unexpected response.";
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        document.getElementById("form-section").style.display = "none";
-        document.getElementById("message-section").style.display = "block";
-        document.getElementById("feedback-message").innerText = "Server error. Please try again later.";
-      });
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("form-section").style.display = "none";
+          document.getElementById("message-section").style.display = "block";
+          document.getElementById("feedback-message").innerText = data.message || "Unexpected response.";
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          document.getElementById("form-section").style.display = "none";
+          document.getElementById("message-section").style.display = "block";
+          document.getElementById("feedback-message").innerText = "Server error. Please try again later.";
+        });
     }
   </script>
 </body>
